@@ -1,12 +1,14 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const express = require('express');
+const app = express();
 
 var browser;
 
 const htmlTemplate = fs.readFileSync('./index.html', 'utf8');
 
-runBrowser = async () => {
-    browser = await puppeteer.launch({
+image = async () => {
+    const browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
         defaultViewport: {
@@ -14,9 +16,7 @@ runBrowser = async () => {
             height: 512,
         }
     })
-}
 
-image = async () => {
     const page = await browser.newPage();
     await page.setContent(htmlTemplate, { waitUntil: 'domcontentloaded' });
     await page.evaluate(async () => {
@@ -44,10 +44,7 @@ image = async () => {
     const image = await element.screenshot({ omitBackground: true, path: './image.png' });
     await page.close();
     // return image;
-}
-
-closeBrowser = async () => {
-    browser.close();
+    await browser.close();
 }
 
 runBrowser().then(image).then(closeBrowser);
