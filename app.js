@@ -3,11 +3,9 @@ const fs = require('fs');
 const express = require('express');
 const app = express();
 
-var browser;
-
 const htmlTemplate = fs.readFileSync('./index.html', 'utf8');
 
-image = async () => {
+imager = async (artistName, trackName) => {
     const browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -16,9 +14,12 @@ image = async () => {
             height: 512,
         }
     })
+    let htemp = '';
+    htemp = htmlTemplate.replace('Artist Name', artistName);
+    htemp = htemp.replace('TRACK NAME', trackName);
 
     const page = await browser.newPage();
-    await page.setContent(htmlTemplate, { waitUntil: 'domcontentloaded' });
+    await page.setContent(htemp, { waitUntil: 'domcontentloaded' });
     await page.evaluate(async () => {
         const selectors = Array.from(document.querySelectorAll("img"));
         await Promise.all([
@@ -41,10 +42,21 @@ image = async () => {
     });
 
     const element = await page.$('#body');
-    const image = await element.screenshot({ omitBackground: true, path: './image.png' });
+    const image = await element.screenshot({ omitBackground: true });
     await page.close();
-    // return image;
     await browser.close();
+    return image;
 }
 
-runBrowser().then(image).then(closeBrowser);
+// get /image/:artist/:track
+app.get('/image/:artist/:track', async (req, res) => {
+    const artistName = req.params.artist;
+    const trackName = req.params.track;
+    const img = await imager(artistName, trackName);
+    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': `public, immutable, no-transform, s-max-age=2592000, max-age=2592000` });
+    res.end(img);
+})
+
+app.listen(3000, () => {
+    console.log('app listening on port 3000!');
+})
